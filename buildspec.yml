@@ -20,28 +20,27 @@ phases:
 
   build:
     commands:
-      - echo "Building with ECR remote cache..."
+      - echo "Building and pushing with ECR remote cache..."
       - |
-        # First build won't have cache - build without cache-from if cache doesn't exist
         if docker buildx imagetools inspect $CACHE_REPO:cache > /dev/null 2>&1; then
           echo "Cache found, building with remote cache..."
-          docker build \
+          docker buildx build \
             --cache-from type=registry,ref=$CACHE_REPO:cache \
             --cache-to type=registry,ref=$CACHE_REPO:cache,image-manifest=true \
             --tag $CACHE_REPO:$IMAGE_TAG \
+            --push \
             --builder=containerd \
             .
         else
           echo "No cache found, building from scratch and creating cache..."
-          docker build \
+          docker buildx build \
             --cache-to type=registry,ref=$CACHE_REPO:cache,image-manifest=true \
             --tag $CACHE_REPO:$IMAGE_TAG \
+            --push \
             --builder=containerd \
             .
         fi
 
   post_build:
     commands:
-      - echo "Pushing image to ECR..."
-      - docker push $CACHE_REPO:$IMAGE_TAG
-      - echo "Build completed successfully!"
+      - echo "Build and push completed successfully!"
