@@ -1,0 +1,35 @@
+version: 0.2
+
+env:
+  variables:
+    ECR_REPO_NAME: ecr-cache-test
+
+phases:
+  install:
+    commands:
+      - echo "Setting up docker buildx with containerd driver..."
+      - docker buildx create --name containerd --driver=docker-container --driver-opt default-load=true
+
+  pre_build:
+    commands:
+      - echo "Logging into ECR..."
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+      - export IMAGE_TAG=${CODEBUILD_RESOLVED_SOURCE_VERSION:0:7}
+      - echo "Image tag is $IMAGE_TAG"
+
+  build:
+    commands:
+      - echo "Building with ECR remote cache..."
+      - |
+        docker build \
+          --cache-from type=registry,ref=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:cache \
+          --cache-to type=registry,ref=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:cache,image-manifest=true \
+          --tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:$IMAGE_TAG \
+          --builder=containerd \
+          .
+
+  post_build:
+    commands:
+      - echo "Pushing image to ECR..."
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:$IMAGE_TAG
+      - echo "Build completed successfully!"
