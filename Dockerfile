@@ -1,7 +1,7 @@
 FROM amazonlinux:2023
 
 RUN yum update -y && \
-    yum install -y python3 python3-pip git curl wget && \
+    yum install -y --allowerasing python3 python3-pip git curl wget && \
     yum clean all
 
 RUN pip3 install boto3 requests flask
