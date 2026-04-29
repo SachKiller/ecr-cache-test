@@ -1,1 +1,1 @@
-print('ECR Cache Test App Running - v2')
+print('ECR Cache Test App Running - v3')
